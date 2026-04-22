@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sportsfest Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top left, #f8fafc, #e2e8f0);
+            background-attachment: fixed;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.5);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .rank-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .rank-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col p-2 sm:p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto mb-6 md:mb-10 text-center pt-2 md:pt-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-1.5 rounded-full bg-white/60 border border-slate-200/60 shadow-sm text-xs md:text-sm font-medium text-slate-600 mb-4 md:mb-6">
+            <div id="connection-status" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+            <span id="connection-text">Kumokonekta sa Database...</span>
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 mb-2 drop-shadow-sm px-2">
+            STI College Marikina
+        </h1>
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 mb-4 md:mb-6 px-2">
+            Sportsfest 2026 Leaderboard
+        </h2>
+        <p class="text-sm md:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed px-4">
+            Live standings ng lahat ng teams. Ang ranggo ay nakabase muna sa <strong class="text-slate-800">Bilang ng Medalya (Gold, Silver, Bronze)</strong>. Kung sakaling mag-tie sa bilang, pagbabasehan ang <strong class="text-slate-800">Puntos bawat Medalya</strong> (Uunahin ang Gold Points, susundan ng Silver Points, at huli ang Bronze Points).
+        </p>
+    </header>
+
+    <!-- Main Content Grid -->
+    <div id="main-grid" class="max-w-5xl w-full mx-auto flex flex-col lg:flex-row gap-4 md:gap-8 transition-all duration-500 ease-in-out px-2 sm:px-0">
+        
+        <!-- LEADERBOARD SECTION -->
+        <div id="leaderboard-section" class="flex-1 space-y-4 relative w-full overflow-x-hidden">
+            
+            <!-- Table Header -->
+            <div class="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-sm font-bold text-slate-400 uppercase tracking-wider">
+                <div class="col-span-1 text-center">Rank</div>
+                <div class="col-span-5">Team</div>
+                <div class="col-span-2 text-center text-amber-500">🥇 Gold</div>
+                <div class="col-span-2 text-center text-slate-400">🥈 Silver</div>
+                <div class="col-span-2 text-center text-amber-700">🥉 Bronze</div>
+                <div id="points-header" class="col-span-2 text-center hidden">Pts</div>
+            </div>
+
+            <!-- Leaderboard Body -->
+            <div id="leaderboard-body" class="space-y-3 w-full">
+                <!-- Rows will be populated by JS -->
+            </div>
+            
+        </div>
+
+        <!-- ADMIN/RECORD RESULTS SECTION (Hidden by default) -->
+        <div id="admin-section" class="w-full lg:w-[450px] hidden opacity-0 transition-opacity duration-300 mx-auto">
+            <div class="glass-panel rounded-2xl md:rounded-3xl p-4 md:p-6 border-t-4 border-t-red-500 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-red-500/10 rounded-full blur-2xl md:blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                
+                <div class="flex justify-between items-center mb-4 md:mb-6 border-b border-slate-200/50 pb-3 md:pb-4">
+                    <h3 class="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 md:w-6 md:h-6"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Admin Panel
+                    </h3>
+                    <span class="text-[10px] md:text-xs font-semibold px-2 py-1 bg-red-100 text-red-700 rounded-md">Live Update</span>
+                </div>
+                
+                <div id="admin-container" class="space-y-6 md:space-y-8 h-[400px] sm:h-[500px] md:h-[600px] overflow-y-auto pr-2 md:pr-3 custom-scrollbar relative">
+                    <!-- Event controls will be populated by JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="max-w-5xl w-full mx-auto mt-auto pt-10 md:pt-16 pb-6 md:pb-8 text-center text-xs md:text-sm font-medium text-slate-400 px-4">
+        Pahiwatig: Pindutin ang <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Ctrl</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Alt</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">.</kbd> para buksan o isara ang Admin Panel (Sa Desktop lamang)
+    </footer>
+
+    <!-- Application Script with Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Data Structures
+        const TEAMS = [
+            { id: 'red', name: 'Team Pula (Red)', bg: 'bg-red-500', lightBg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700' },
+            { id: 'pink', name: 'Team Rosas (Pink)', bg: 'bg-pink-500', lightBg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700' },
+            { id: 'blue', name: 'Team Bughaw (Blue)', bg: 'bg-blue-500', lightBg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
+            { id: 'violet', name: 'Team Lila (Violet)', bg: 'bg-violet-500', lightBg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700' },
+            { id: 'green', name: 'Team Luntian (Green)', bg: 'bg-green-500', lightBg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700' },
+            { id: 'orange', name: 'Team Kahel (Orange)', bg: 'bg-orange-500', lightBg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700' }
+        ];
+
+        const EVENTS = [
+            // Major Sports
+            { id: 'basketball', name: 'Basketball (2 pts)', category: 'Major Sports', points: 2 },
+            { id: 'vb_boys', name: 'Volleyball - Boys (2 pts)', category: 'Major Sports', points: 2 },
+            { id: 'vb_girls', name: 'Volleyball - Girls (2 pts)', category: 'Major Sports', points: 2 },
+            
+            // Special Events
+            { id: 'cheerdance', name: 'Cheerdance (2 pts)', category: 'Special Events', points: 2 },
+            
+            // E-Games
+            { id: 'valorant', name: 'Valorant (1 pt)', category: 'E-Games', points: 1 },
+            { id: 'mlbb', name: 'Mobile Legends (1 pt)', category: 'E-Games', points: 1 },
+            { id: 'tekken7', name: 'Tekken 7 (1 pt)', category: 'E-Games', points: 1 },
+            
+            // Board/Logic Games
+            { id: 'chess', name: 'Chess (1 pt)', category: 'Board/Logic Games', points: 1 },
+            { id: 'scrabble', name: 'Scrabble (1 pt)', category: 'Board/Logic Games', points: 1 },
+            { id: 'darts', name: 'Darts (1 pt)', category: 'Board/Logic Games', points: 1 },
+            { id: 'braintwister', name: 'Brain Twister (1 pt)', category: 'Board/Logic Games', points: 1 },
+            { id: 'triggle', name: 'Triggle (1 pt)', category: 'Board/Logic Games', points: 1 },
+            
+            // Recreational Games
+            { id: 'rec_relay', name: 'Relay Race (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_shoot', name: 'Shoot that Ball (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_tubo', name: 'Tubo Balance (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_tictactoe', name: 'Running Tic Tac Toe (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_touchball', name: 'Touch Ball (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_patintero', name: 'Patintero (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_tugofwar', name: 'Tug of War (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+        ];
+
+        const CATEGORIES = ['Major Sports', 'E-Games', 'Board/Logic Games', 'Recreational Games', 'Special Events'];
+        
+        // Application State
+        let results = {};
+        let db, auth, docRef;
+
+        // DOM Elements
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        const adminContainer = document.getElementById('admin-container');
+        const adminSection = document.getElementById('admin-section');
+        const mainGrid = document.getElementById('main-grid');
+        const connStatus = document.getElementById('connection-status');
+        const connText = document.getElementById('connection-text');
+
+        // Setup Firebase
+        async function initFirebase() {
+            try {
+                let firebaseConfig;
+                let appId = 'sti-sportsfest-2026';
+                let useCanvasAuth = false;
+
+                // Check if running inside Canvas environment vs Local/External Hosting
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                    appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+                    useCanvasAuth = true;
+                } else {
+                    // Use User's Specific API Key & Config for local testing or external hosting
+                    firebaseConfig = {
+                        apiKey: "AIzaSyA7Flt_3pAdEQ0hifcXB4LYKSaQ0i5KN6E",
+                        authDomain: "sti-sportsfest-2026.firebaseapp.com",
+                        projectId: "sti-sportsfest-2026",
+                        storageBucket: "sti-sportsfest-2026.firebasestorage.app",
+                        messagingSenderId: "734619377299",
+                        appId: "1:734619377299:web:3462e787c90ef0cc8a7766"
+                    };
+                }
+
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (useCanvasAuth && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // Strict Rule 1 Path: /artifacts/{appId}/public/data/{collectionName}/{docId}
+                        docRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', 'results');
+                        
+                        onSnapshot(docRef, (docSnap) => {
+                            if (docSnap.exists()) {
+                                results = docSnap.data();
+                            } else {
+                                results = {};
+                            }
+                            setConnectionState('connected');
+                            updateSelectStates();
+                            updateLeaderboard();
+                        }, (error) => {
+                            console.error("Firestore Listener Error:", error);
+                            setConnectionState('error');
+                        });
+                    }
+                });
+
+                initApp();
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                setConnectionState('error');
+                initApp();
+            }
+        }
+
+        function setConnectionState(state) {
+            connStatus.className = 'w-2 h-2 md:w-2 md:h-2 rounded-full shrink-0';
+            if (state === 'connected') {
+                connStatus.classList.add('bg-green-500');
+                connText.innerText = 'Naka-sync sa Cloud';
+            } else if (state === 'local') {
+                connStatus.classList.add('bg-slate-400');
+                connText.innerText = 'Local Mode (Hindi naka-save)';
+            } else if (state === 'error') {
+                connStatus.classList.add('bg-red-500');
+                connText.innerText = 'Connection Error';
+            }
+        }
+
+        function initApp() {
+            buildAdminUI();
+            updateLeaderboard();
+            
+            // Add double tap listener for mobile admin access
+            let lastTap = 0;
+            document.querySelector('header h1').addEventListener('touchend', function(e) {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 500 && tapLength > 0) {
+                    toggleAdmin();
+                    e.preventDefault();
+                }
+                lastTap = currentTime;
+            });
+        }
+
+        function toggleAdmin() {
+            const isHidden = adminSection.classList.contains('hidden');
+            
+            if (isHidden) {
+                adminSection.classList.remove('hidden');
+                setTimeout(() => adminSection.classList.remove('opacity-0'), 10);
+                mainGrid.classList.remove('max-w-5xl');
+                mainGrid.classList.add('max-w-7xl');
+            } else {
+                adminSection.classList.add('opacity-0');
+                setTimeout(() => adminSection.classList.add('hidden'), 300);
+                mainGrid.classList.remove('max-w-7xl');
+                mainGrid.classList.add('max-w-5xl');
+            }
+            updateLeaderboard(); // Re-render to toggle points visibility
+        }
+
+        // Handle Admin Shortcut (Ctrl + Alt + .)
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey && event.altKey && event.key === '.') {
+                event.preventDefault();
+                toggleAdmin();
+            }
+        });
+
+        function updateLeaderboard() {
+            let stats = TEAMS.map(team => ({ 
+                ...team, 
+                gold: 0, silver: 0, bronze: 0, 
+                points: 0, goldPoints: 0, silverPoints: 0, bronzePoints: 0
+            }));
+
+            // Tally results
+            Object.entries(results).forEach(([eventId, eventResult]) => {
+                const event = EVENTS.find(e => e.id === eventId);
+                if (!event) return;
+                const pts = event.points || 0;
+
+                if (eventResult.gold) {
+                    let t = stats.find(x => x.id === eventResult.gold);
+                    if (t) { t.gold++; t.points += pts; t.goldPoints += pts; }
+                }
+                if (eventResult.silver) {
+                    let t = stats.find(x => x.id === eventResult.silver);
+                    if (t) { t.silver++; t.points += pts; t.silverPoints += pts; }
+                }
+                if (eventResult.bronze) {
+                    let t = stats.find(x => x.id === eventResult.bronze);
+                    if (t) { t.bronze++; t.points += pts; t.bronzePoints += pts; }
+                }
+            });
+
+            // Sorting Logic: 
+            stats.sort((a, b) => {
+                // 1. Bilang ng Gold Medals
+                if (b.gold !== a.gold) return b.gold - a.gold;
+                // 2. Bilang ng Silver Medals
+                if (b.silver !== a.silver) return b.silver - a.silver;
+                // 3. Bilang ng Bronze Medals
+                if (b.bronze !== a.bronze) return b.bronze - a.bronze;
+                
+                // TIE BREAKER: Puntos
+                if (b.goldPoints !== a.goldPoints) return b.goldPoints - a.goldPoints;
+                if (b.silverPoints !== a.silverPoints) return b.silverPoints - a.silverPoints;
+                return b.bronzePoints - a.bronzePoints;
+            });
+
+            const isAdminOpen = !adminSection.classList.contains('hidden');
+            const pointsHeader = document.getElementById('points-header');
+            
+            if (pointsHeader) {
+                if (isAdminOpen) {
+                    pointsHeader.classList.remove('hidden');
+                    // Adjust header grid when points are shown
+                    pointsHeader.parentElement.classList.remove('grid-cols-12');
+                    pointsHeader.parentElement.classList.add('grid-cols-14'); // Assuming we want it to take space
+                } else {
+                    pointsHeader.classList.add('hidden');
+                    pointsHeader.parentElement.classList.add('grid-cols-12');
+                    pointsHeader.parentElement.classList.remove('grid-cols-14');
+                }
+            }
+
+
+            // Render Elegant Cards
+            leaderboardBody.innerHTML = stats.map((team, index) => {
+                const isFirst = index === 0;
+                const rankIcon = isFirst ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`;
+                const rankColor = isFirst ? 'bg-gradient-to-br from-yellow-300 to-amber-500 text-white shadow-md border-0' : 
+                                  index === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-white shadow-sm border-0' : 
+                                  index === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm border-0' : 
+                                  'bg-white text-slate-500 border border-slate-200';
+
+                return `
+                    <div class="rank-card glass-panel rounded-xl md:rounded-2xl flex flex-col md:grid ${isAdminOpen ? 'md:grid-cols-14' : 'md:grid-cols-12'} items-center p-3 md:p-4 gap-3 md:gap-4 relative overflow-hidden w-full">
+                        ${isFirst ? '<div class="absolute -top-10 -right-10 w-24 h-24 md:w-32 md:h-32 bg-yellow-400/20 rounded-full blur-2xl md:blur-3xl pointer-events-none"></div>' : ''}
+                        
+                        <div class="col-span-1 flex justify-between md:justify-center w-full md:w-auto items-center mb-2 md:mb-0">
+                            <span class="inline-flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full font-extrabold text-base md:text-lg shrink-0 ${rankColor}">
+                                ${rankIcon}
+                            </span>
+                            
+                            <!-- Mobile only points display when admin is open -->
+                            ${isAdminOpen ? `<span class="md:hidden font-bold text-slate-500 text-sm bg-slate-100 px-2 py-1 rounded">Pts: ${team.points}</span>` : ''}
+                        </div>
+                        
+                        <div class="col-span-5 w-full flex items-center justify-start md:justify-start gap-3 md:gap-4">
+                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full ${team.lightBg} border-2 ${team.border} flex items-center justify-center shadow-sm shrink-0">
+                                <div class="w-6 h-6 md:w-8 md:h-8 rounded-full ${team.bg}"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-base md:text-lg ${team.text} truncate">${team.name}</h4>
+                                ${isAdminOpen ? `<div class="text-[10px] md:text-xs font-semibold text-slate-400 tracking-wide uppercase truncate hidden md:block">Total Points: ${team.points}</div>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="col-span-6 w-full grid grid-cols-3 gap-1.5 md:gap-2 mt-1 md:mt-0">
+                            <div class="bg-amber-50/50 border border-amber-100 rounded-lg md:rounded-xl p-2 md:p-3 flex flex-col items-center justify-center">
+                                <span class="text-[10px] md:text-xs font-semibold text-amber-600 mb-0.5 md:mb-1 uppercase tracking-wider hidden sm:block">Gold</span>
+                                <span class="text-xl md:text-2xl font-black text-amber-500">${team.gold}</span>
+                            </div>
+                            <div class="bg-slate-50/50 border border-slate-200 rounded-lg md:rounded-xl p-2 md:p-3 flex flex-col items-center justify-center">
+                                <span class="text-[10px] md:text-xs font-semibold text-slate-500 mb-0.5 md:mb-1 uppercase tracking-wider hidden sm:block">Silver</span>
+                                <span class="text-xl md:text-2xl font-black text-slate-400">${team.silver}</span>
+                            </div>
+                            <div class="bg-orange-50/50 border border-orange-100 rounded-lg md:rounded-xl p-2 md:p-3 flex flex-col items-center justify-center">
+                                <span class="text-[10px] md:text-xs font-semibold text-amber-800 mb-0.5 md:mb-1 uppercase tracking-wider hidden sm:block">Bronze</span>
+                                <span class="text-xl md:text-2xl font-black text-amber-700">${team.bronze}</span>
+                            </div>
+                        </div>
+                        
+                        ${isAdminOpen ? `
+                        <div class="col-span-2 hidden md:flex items-center justify-center">
+                            <span class="text-xl font-bold text-slate-500">${team.points}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buildAdminUI() {
+            let html = '';
+            
+            CATEGORIES.forEach(category => {
+                const categoryEvents = EVENTS.filter(e => e.category === category);
+                if (categoryEvents.length === 0) return;
+
+                html += `
+                    <div class="space-y-3 md:space-y-4 relative">
+                        <h4 class="font-bold text-slate-400 uppercase tracking-widest text-[10px] md:text-xs sticky top-0 bg-white/90 backdrop-blur-sm py-1.5 md:py-2 z-10 border-b border-slate-100">
+                            ${category}
+                        </h4>
+                `;
+
+                categoryEvents.forEach(event => {
+                    html += `
+                        <div class="bg-white/60 p-3 md:p-5 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm space-y-3 md:space-y-4 hover:shadow-md transition-shadow">
+                            <h5 class="font-bold text-sm md:text-base text-slate-800">${event.name}</h5>
+                            <div class="grid grid-cols-1 gap-2 md:gap-3">
+                                ${createSelectHTML(event.id, 'gold', '🥇', 'amber-200', 'amber-500', 'bg-amber-50/30')}
+                                ${createSelectHTML(event.id, 'silver', '🥈', 'slate-300', 'slate-500', 'bg-slate-50/30')}
+                                ${createSelectHTML(event.id, 'bronze', '🥉', 'amber-700/30', 'orange-500', 'bg-orange-50/30')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            adminContainer.innerHTML = html;
+            updateSelectStates();
+        }
+
+        function createSelectHTML(eventId, medalType, icon, borderBase, borderFocus, bgClass) {
+            const label = medalType.charAt(0).toUpperCase() + medalType.slice(1);
+            let optionsHTML = `<option value="" class="text-slate-400">Pumili para sa ${label}...</option>`;
+            TEAMS.forEach(t => {
+                optionsHTML += `<option value="${t.id}" class="text-slate-800 font-medium">${t.name}</option>`;
+            });
+
+            return `
+                <div class="flex items-center gap-2 md:gap-3">
+                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-100 text-sm md:text-lg shrink-0">${icon}</div>
+                    <select id="${eventId}-${medalType}" 
+                            onchange="window.handleMedalChange('${eventId}', '${medalType}', this.value)"
+                            class="flex-1 ${bgClass} border border-${borderBase} text-xs md:text-sm font-medium text-slate-700 rounded-lg md:rounded-xl focus:ring-2 focus:ring-${borderFocus} focus:border-${borderFocus} block w-full p-2 md:p-2.5 outline-none transition-all shadow-sm appearance-none cursor-pointer">
+                        ${optionsHTML}
+                    </select>
+                </div>
+            `;
+        }
+
+        // Must assign to window because module scoping hides standard functions from inline HTML handlers
+        window.handleMedalChange = async function(eventId, medalType, teamId) {
+            // Optimistic Local Update
+            if (!results[eventId]) {
+                results[eventId] = { gold: '', silver: '', bronze: '' };
+            }
+            results[eventId][medalType] = teamId;
+            
+            updateSelectStates();
+            updateLeaderboard();
+
+            // Persist to Firebase
+            if (docRef && auth.currentUser) {
+                try {
+                    await setDoc(docRef, results, { merge: true });
+                } catch (error) {
+                    console.error("Error saving to Firestore:", error);
+                    alert("May problema sa pag-save ng data.");
+                }
+            }
+        };
+
+        function updateSelectStates() {
+            EVENTS.forEach(ev => {
+                ['gold', 'silver', 'bronze'].forEach(medal => {
+                    const select = document.getElementById(`${ev.id}-${medal}`);
+                    if (!select) return;
+
+                    const current = results[ev.id] || {};
+                    const g = current.gold || "";
+                    const s = current.silver || "";
+                    const b = current.bronze || "";
+
+                    select.value = current[medal] || "";
+
+                    Array.from(select.options).forEach(opt => {
+                        if (opt.value === "") return;
+                        opt.disabled = false;
+                        
+                        if (medal === 'gold' && (opt.value === s || opt.value === b)) opt.disabled = true;
+                        if (medal === 'silver' && (opt.value === g || opt.value === b)) opt.disabled = true;
+                        if (medal === 'bronze' && (opt.value === g || opt.value === s)) opt.disabled = true;
+                    });
+                });
+            });
+        }
+
+        // Start App
+        initFirebase();
+
+    </script>
+</body>
+</html>
