@@ -56,7 +56,7 @@
             <span id="connection-text">Kumokonekta sa Database...</span>
         </div>
 
-        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 mb-2 drop-shadow-sm px-2">
+        <h1 id="secret-header" class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 mb-2 drop-shadow-sm px-2 cursor-pointer select-none">
             STI College Marikina
         </h1>
         <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 mb-4 md:mb-6 px-2">
@@ -112,7 +112,7 @@
     </div>
 
     <footer class="max-w-5xl w-full mx-auto mt-auto pt-10 md:pt-16 pb-6 md:pb-8 text-center text-xs md:text-sm font-medium text-slate-400 px-4">
-        Pahiwatig: Pindutin ang <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Ctrl</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Alt</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">.</kbd> para buksan o isara ang Admin Panel (Sa Desktop lamang)
+        Pahiwatig: I-click ang "STI College Marikina" title o pindutin ang <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Ctrl</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Alt</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">.</kbd> para buksan o isara ang Admin Panel
     </footer>
 
     <!-- Application Script with Firebase -->
@@ -257,20 +257,45 @@
             buildAdminUI();
             updateLeaderboard();
             
-            // Add double tap listener for mobile admin access
-            let lastTap = 0;
-            document.querySelector('header h1').addEventListener('touchend', function(e) {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
+            // Multi-tap listener for mobile/desktop admin access (Minimum 5 taps)
+            let tapCount = 0;
+            let tapTimer;
+            const secretHeader = document.getElementById('secret-header');
+
+            secretHeader.addEventListener('click', function(e) {
+                tapCount++;
+                
+                // Reset the count if they stop tapping for 1 second
+                clearTimeout(tapTimer);
+                tapTimer = setTimeout(() => {
+                    tapCount = 0;
+                }, 1000);
+
+                if (tapCount >= 5) {
                     toggleAdmin();
+                    tapCount = 0; // Reset after successful trigger
                     e.preventDefault();
                 }
-                lastTap = currentTime;
+            });
+            
+            // Also support touch events directly for better mobile response
+            secretHeader.addEventListener('touchend', function(e) {
+                tapCount++;
+                
+                clearTimeout(tapTimer);
+                tapTimer = setTimeout(() => {
+                    tapCount = 0;
+                }, 1000);
+
+                if (tapCount >= 5) {
+                    toggleAdmin();
+                    tapCount = 0; 
+                    e.preventDefault();
+                }
             });
         }
 
-        function toggleAdmin() {
+        window.toggleAdmin = function() {
             const isHidden = adminSection.classList.contains('hidden');
             
             if (isHidden) {
