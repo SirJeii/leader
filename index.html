@@ -117,7 +117,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Pinalitan ang getFirestore ng initializeFirestore para magamit ang long polling
+        import { initializeFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Data Structures
         const TEAMS = [
@@ -141,10 +142,12 @@
             // E-Games
             { id: 'valorant', name: 'Valorant (1 pt)', category: 'E-Games', points: 1 },
             { id: 'mlbb', name: 'Mobile Legends (1 pt)', category: 'E-Games', points: 1 },
-            { id: 'tekken7', name: 'Tekken 7 (1 pt)', category: 'E-Games', points: 1 },
+            { id: 'tekken7_shs', name: 'Tekken 7 - SHS (1 pt)', category: 'E-Games', points: 1 },
+            { id: 'tekken7_tertiary', name: 'Tekken 7 - Tertiary (1 pt)', category: 'E-Games', points: 1 },
             
             // Board/Logic Games
-            { id: 'chess', name: 'Chess (1 pt)', category: 'Board/Logic Games', points: 1 },
+            { id: 'chess_boys', name: 'Chess - Boys (1 pt)', category: 'Board/Logic Games', points: 1 },
+            { id: 'chess_girls', name: 'Chess - Girls (1 pt)', category: 'Board/Logic Games', points: 1 },
             { id: 'scrabble', name: 'Scrabble (1 pt)', category: 'Board/Logic Games', points: 1 },
             { id: 'darts', name: 'Darts (1 pt)', category: 'Board/Logic Games', points: 1 },
             { id: 'braintwister', name: 'Brain Twister (1 pt)', category: 'Board/Logic Games', points: 1 },
@@ -157,7 +160,8 @@
             { id: 'rec_tictactoe', name: 'Running Tic Tac Toe (0.5 pts)', category: 'Recreational Games', points: 0.5 },
             { id: 'rec_touchball', name: 'Touch Ball (0.5 pts)', category: 'Recreational Games', points: 0.5 },
             { id: 'rec_patintero', name: 'Patintero (0.5 pts)', category: 'Recreational Games', points: 0.5 },
-            { id: 'rec_tugofwar', name: 'Tug of War (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_tugofwar_boys', name: 'Tug of War - Boys (0.5 pts)', category: 'Recreational Games', points: 0.5 },
+            { id: 'rec_tugofwar_girls', name: 'Tug of War - Girls (0.5 pts)', category: 'Recreational Games', points: 0.5 },
         ];
 
         const CATEGORIES = ['Major Sports', 'E-Games', 'Board/Logic Games', 'Recreational Games', 'Special Events'];
@@ -200,7 +204,12 @@
 
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
-                db = getFirestore(app);
+                
+                // Ginamit natin ang initializeFirestore with experimentalForceLongPolling: true
+                // upang maiwasan ang mga 10-second timeout errors sa mga restricted networks/environments
+                db = initializeFirestore(app, {
+                    experimentalForceLongPolling: true
+                });
 
                 if (useCanvasAuth && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -225,6 +234,10 @@
                         }, (error) => {
                             console.error("Firestore Listener Error:", error);
                             setConnectionState('error');
+                            // Ipakita sa user kung hindi makapasok sa database
+                            if(error.message.includes("Could not reach Cloud Firestore")) {
+                                connText.innerText = 'Database Not Found/Timeout. Paki-check sa Firebase Console.';
+                            }
                         });
                     }
                 });
