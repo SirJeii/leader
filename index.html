@@ -62,9 +62,6 @@
         <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 mb-4 md:mb-6 px-2">
             Sportsfest 2026 Leaderboard
         </h2>
-        <p class="text-sm md:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed px-4">
-            Live standings ng lahat ng teams. Ang ranggo ay nakabase muna sa <strong class="text-slate-800">Bilang ng Medalya (Gold, Silver, Bronze)</strong>. Kung sakaling mag-tie sa bilang, pagbabasehan ang <strong class="text-slate-800">Puntos bawat Medalya</strong> (Uunahin ang Gold Points, susundan ng Silver Points, at huli ang Bronze Points).
-        </p>
     </header>
 
     <!-- Main Content Grid -->
@@ -111,8 +108,9 @@
 
     </div>
 
+    <!-- Pinalitan ang footer content upang maging malinis at hindi makita ng user ang instructions -->
     <footer class="max-w-5xl w-full mx-auto mt-auto pt-10 md:pt-16 pb-6 md:pb-8 text-center text-xs md:text-sm font-medium text-slate-400 px-4">
-        Pahiwatig: I-click ang "STI College Marikina" title o pindutin ang <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Ctrl</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">Alt</kbd> + <kbd class="px-1 md:px-2 py-0.5 md:py-1 bg-white border border-slate-200 rounded-md shadow-sm text-slate-500 mx-0.5 md:mx-1">.</kbd> para buksan o isara ang Admin Panel
+        &copy; 2026 STI College Marikina Sportsfest
     </footer>
 
     <!-- Application Script with Firebase -->
@@ -257,39 +255,24 @@
             buildAdminUI();
             updateLeaderboard();
             
-            // Multi-tap listener for mobile/desktop admin access (Minimum 5 taps)
+            // 5-tap/click listener para mabuksan ang admin (Mobile at Desktop)
             let tapCount = 0;
             let tapTimer;
             const secretHeader = document.getElementById('secret-header');
 
+            // Gagamitin ang 'click' event lamang para iwas double-count sa mga mobile devices
             secretHeader.addEventListener('click', function(e) {
                 tapCount++;
                 
-                // Reset the count if they stop tapping for 1 second
+                // I-reset ang bilang kung tumigil sa pag-click nang higit sa 1 segundo
                 clearTimeout(tapTimer);
                 tapTimer = setTimeout(() => {
                     tapCount = 0;
                 }, 1000);
 
                 if (tapCount >= 5) {
-                    toggleAdmin();
-                    tapCount = 0; // Reset after successful trigger
-                    e.preventDefault();
-                }
-            });
-            
-            // Also support touch events directly for better mobile response
-            secretHeader.addEventListener('touchend', function(e) {
-                tapCount++;
-                
-                clearTimeout(tapTimer);
-                tapTimer = setTimeout(() => {
-                    tapCount = 0;
-                }, 1000);
-
-                if (tapCount >= 5) {
-                    toggleAdmin();
-                    tapCount = 0; 
+                    window.toggleAdmin();
+                    tapCount = 0; // I-reset pagkatapos mabuksan
                     e.preventDefault();
                 }
             });
